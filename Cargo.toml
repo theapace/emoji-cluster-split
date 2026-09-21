@@ -1,0 +1,8 @@
+[package]
+name = "emoji-cluster-split"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Splits text into the emoji sequences a person actually perceives, not raw codepoints"
+
+[dependencies]
