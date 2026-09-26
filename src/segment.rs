@@ -96,3 +96,63 @@ pub fn split_clusters(input: &str) -> Vec<String> {
 pub fn codepoints(cluster: &str) -> Vec<String> {
     cluster.chars().map(|c| format!("U+{:04X}", c as u32)).collect()
 }
+
+// Cluster text can itself contain quotes, backslashes, or control characters
+// (a bare ZWJ or tag char would be invisible but still needs escaping to keep
+// the output valid JSON), so this can't just be wrapped in quotes as-is.
+fn escape_json(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Renders clusters as a JSON array of `{"text", "codepoints"}` objects, for
+/// piping into scripts instead of parsing the human-readable table output.
+pub fn to_json(clusters: &[String]) -> String {
+    let mut out = String::from("[\n");
+    for (i, cluster) in clusters.iter().enumerate() {
+        let codes: Vec<String> = codepoints(cluster)
+            .iter()
+            .map(|c| format!("\"{}\"", c))
+            .collect();
+        out.push_str(&format!(
+            "  {{\"text\": \"{}\", \"codepoints\": [{}]}}",
+            escape_json(cluster),
+            codes.join(", ")
+        ));
+        if i + 1 < clusters.len() {
+            out.push(',');
+        }
+        out.push('\n');
+    }
+    out.push(']');
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn escape_json_handles_quotes_backslashes_and_control_chars() {
+        assert_eq!(escape_json("a\"b"), "a\\\"b");
+        assert_eq!(escape_json("a\\b"), "a\\\\b");
+        assert_eq!(escape_json("a\nb"), "a\\nb");
+        assert_eq!(escape_json("\u{200D}"), "\\u200d");
+    }
+
+    #[test]
+    fn escape_json_leaves_plain_emoji_untouched() {
+        assert_eq!(escape_json("👋🏽"), "👋🏽");
+    }
+}

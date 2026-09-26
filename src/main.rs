@@ -4,7 +4,9 @@ use std::io::{self, Read};
 use emoji_cluster_split::segment;
 
 fn main() {
-    let args: Vec<String> = env::args().skip(1).collect();
+    let raw_args: Vec<String> = env::args().skip(1).collect();
+    let json_mode = raw_args.iter().any(|a| a == "--json");
+    let args: Vec<String> = raw_args.into_iter().filter(|a| a != "--json").collect();
 
     let input = if args.is_empty() {
         let mut buf = String::new();
@@ -17,6 +19,11 @@ fn main() {
     };
 
     let clusters = segment::split_clusters(&input);
+
+    if json_mode {
+        println!("{}", segment::to_json(&clusters));
+        return;
+    }
 
     for (i, cluster) in clusters.iter().enumerate() {
         let codes = segment::codepoints(cluster).join(" ");

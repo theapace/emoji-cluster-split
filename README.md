@@ -50,6 +50,16 @@ $ emoji-cluster-split "hi 🤦🏽‍♀️!"
 5 clusters
 ```
 
+Pass `--json` to get structured output for scripting instead of the table:
+
+```
+$ emoji-cluster-split --json "👋🏽🇺🇸"
+[
+  {"text": "👋🏽", "codepoints": ["U+1F44B", "U+1F3FD"]},
+  {"text": "🇺🇸", "codepoints": ["U+1F1FA", "U+1F1F8"]}
+]
+```
+
 ## What it knows about
 
 - ZWJ sequences (families, couples, professions with a gender sign)

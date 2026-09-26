@@ -1,4 +1,4 @@
-use emoji_cluster_split::segment::split_clusters;
+use emoji_cluster_split::segment::{split_clusters, to_json};
 
 struct Case {
     name: &'static str,
@@ -102,4 +102,24 @@ fn table_driven_cluster_cases() {
             case.name
         );
     }
+}
+
+#[test]
+fn json_output_has_one_object_per_cluster_with_matching_codepoints() {
+    let clusters = split_clusters("👋🏽🇺🇸x");
+    let json = to_json(&clusters);
+
+    assert_eq!(json.matches("\"text\":").count(), 3);
+    assert!(json.contains("\"codepoints\": [\"U+1F44B\", \"U+1F3FD\"]"));
+    assert!(json.contains("\"codepoints\": [\"U+1F1FA\", \"U+1F1F8\"]"));
+    assert!(json.contains("\"text\": \"x\", \"codepoints\": [\"U+0078\"]"));
+}
+
+#[test]
+fn json_output_escapes_quotes_and_backslashes_in_cluster_text() {
+    let clusters = split_clusters("\"\\");
+    let json = to_json(&clusters);
+
+    assert!(json.contains("\"text\": \"\\\"\""));
+    assert!(json.contains("\"text\": \"\\\\\""));
 }
