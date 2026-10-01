@@ -1,4 +1,4 @@
-use emoji_cluster_split::segment::{split_clusters, to_json};
+use emoji_cluster_split::segment::{merge_text_runs, split_clusters, to_json};
 
 struct Case {
     name: &'static str,
@@ -102,6 +102,34 @@ fn table_driven_cluster_cases() {
             case.name
         );
     }
+}
+
+#[test]
+fn merge_text_runs_joins_text_between_emoji() {
+    let clusters = split_clusters("hi \u{1F44B}\u{1F3FD} there\u{1F1FA}\u{1F1F8}");
+    let merged = merge_text_runs(&clusters);
+
+    assert_eq!(
+        merged,
+        vec!["hi ", "\u{1F44B}\u{1F3FD}", " there", "\u{1F1FA}\u{1F1F8}"]
+    );
+}
+
+#[test]
+fn merge_text_runs_keeps_adjacent_emoji_separate() {
+    let clusters = split_clusters("\u{1F600}\u{1F600}");
+    assert_eq!(merge_text_runs(&clusters).len(), 2);
+}
+
+#[test]
+fn merge_text_runs_treats_digits_as_text_but_keycaps_as_emoji() {
+    let clusters = split_clusters("a1\u{FE0F}\u{20E3}b42");
+    assert_eq!(merge_text_runs(&clusters), vec!["a", "1\u{FE0F}\u{20E3}", "b42"]);
+}
+
+#[test]
+fn merge_text_runs_on_empty_input_is_empty() {
+    assert!(merge_text_runs(&[]).is_empty());
 }
 
 #[test]

@@ -92,6 +92,53 @@ pub fn split_clusters(input: &str) -> Vec<String> {
     clusters
 }
 
+// Blocks where a lone codepoint is treated as an emoji rather than text. This
+// is deliberately a coarse range check and not the real Emoji property: digits
+// and '#' are left out so "call 911" stays text, and the keycap form is
+// already caught because it is a multi-codepoint cluster.
+fn is_emoji_codepoint(c: char) -> bool {
+    matches!(
+        c as u32,
+        0x203C | 0x2049 | 0x2122 | 0x2139
+            | 0x2190..=0x21FF
+            | 0x231A..=0x23FF
+            | 0x2600..=0x27BF
+            | 0x2B50
+            | 0x2B55
+            | 0x1F000..=0x1FAFF
+    )
+}
+
+fn is_text_cluster(cluster: &str) -> bool {
+    let mut chars = cluster.chars();
+    match (chars.next(), chars.next()) {
+        (Some(c), None) => !is_emoji_codepoint(c),
+        _ => false,
+    }
+}
+
+/// Collapses consecutive plain-text clusters into one run each, leaving emoji
+/// clusters alone. Debugging a truncation bug is easier when "hello " shows up
+/// as one row between two emoji instead of six.
+pub fn merge_text_runs(clusters: &[String]) -> Vec<String> {
+    let mut merged: Vec<String> = Vec::new();
+    let mut previous_was_text = false;
+
+    for cluster in clusters {
+        let is_text = is_text_cluster(cluster);
+        if is_text && previous_was_text {
+            if let Some(last) = merged.last_mut() {
+                last.push_str(cluster);
+            }
+        } else {
+            merged.push(cluster.clone());
+        }
+        previous_was_text = is_text;
+    }
+
+    merged
+}
+
 /// Formats every codepoint in `cluster` as `U+XXXX`, for display.
 pub fn codepoints(cluster: &str) -> Vec<String> {
     cluster.chars().map(|c| format!("U+{:04X}", c as u32)).collect()

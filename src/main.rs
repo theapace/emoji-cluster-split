@@ -6,7 +6,11 @@ use emoji_cluster_split::segment;
 fn main() {
     let raw_args: Vec<String> = env::args().skip(1).collect();
     let json_mode = raw_args.iter().any(|a| a == "--json");
-    let args: Vec<String> = raw_args.into_iter().filter(|a| a != "--json").collect();
+    let runs_mode = raw_args.iter().any(|a| a == "--runs");
+    let args: Vec<String> = raw_args
+        .into_iter()
+        .filter(|a| a != "--json" && a != "--runs")
+        .collect();
 
     let input = if args.is_empty() {
         let mut buf = String::new();
@@ -18,7 +22,10 @@ fn main() {
         args.join(" ")
     };
 
-    let clusters = segment::split_clusters(&input);
+    let mut clusters = segment::split_clusters(&input);
+    if runs_mode {
+        clusters = segment::merge_text_runs(&clusters);
+    }
 
     if json_mode {
         println!("{}", segment::to_json(&clusters));

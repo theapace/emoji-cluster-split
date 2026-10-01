@@ -50,6 +50,18 @@ $ emoji-cluster-split "hi 🤦🏽‍♀️!"
 5 clusters
 ```
 
+Pass `--runs` to merge consecutive non-emoji characters into one row, which
+keeps long stretches of text from drowning out the emoji:
+
+```
+$ emoji-cluster-split --runs "hi 🤦🏽‍♀️!"
+  1  hi    U+0068 U+0069 U+0020
+  2  🤦🏽‍♀️   U+1F926 U+1F3FD U+200D U+2640 U+FE0F
+  3  !   U+0021
+
+3 clusters
+```
+
 Pass `--json` to get structured output for scripting instead of the table:
 
 ```
